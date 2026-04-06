@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="es" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pasapalabra</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+  <style>
+  html, body { height: 100%; margin: 0; }
+  * { font-family: 'Fredoka', sans-serif; }
+
+  .rosco-container { position: relative; width: 100%; padding-bottom: 100%; }
+  .rosco-inner { position: absolute; inset: 0; }
+
+  .letter-circle {
+    position: absolute;
+    width: var(--circle-size);
+    height: var(--circle-size);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: var(--font-size);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    border: 3px solid transparent;
+    text-transform: uppercase;
+  }
+  .letter-circle.pending { background: #1e293b; color: #e2e8f0; border-color: #334155; }
+  .letter-circle.active { background: #f59e0b; color: #1e293b; border-color: #fbbf24; transform: scale(1.25); box-shadow: 0 0 20px rgba(245,158,11,0.6); z-index: 10; }
+  .letter-circle.correct { background: #22c55e; color: #fff; border-color: #4ade80; }
+  .letter-circle.wrong { background: #ef4444; color: #fff; border-color: #f87171; }
+  .letter-circle.passed { background: #6366f1; color: #fff; border-color: #818cf8; }
+
+  .pulse { animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 20px rgba(245,158,11,0.4); } 50% { box-shadow: 0 0 35px rgba(245,158,11,0.8); } }
+
+  .timer-ring { transition: stroke-dashoffset 1s linear; }
+
+  .fade-in { animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .btn-game {
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-game:active { transform: scale(0.96); }
+
+  input.answer-input {
+    font-family: 'Fredoka', sans-serif;
+    background: #0f172a;
+    border: 2px solid #334155;
+    color: #f1f5f9;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 18px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input.answer-input:focus { border-color: #f59e0b; }
+  input.answer-input::placeholder { color: #64748b; }
+
+  .result-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    display: flex; align-items: center; justify-content: center; z-index: 50;
+  }
+</style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-[#0a0e1a] text-slate-100 overflow-auto">
+  <div id="app" class="w-full h-full flex flex-col items-center"><!-- START SCREEN -->
+   <div id="startScreen" class="w-full h-full flex flex-col items-center justify-center p-6 fade-in">
+    <div class="text-center max-w-md w-full">
+     <div class="text-6xl mb-4">
+      🅿️
+     </div>
+     <h1 id="titleDisplay" class="text-4xl font-bold mb-2" style="color:#f59e0b">Pasapalabra enREDados</h1>
+     <p class="text-slate-400 mb-8">Responde las definiciones para cada letra del abecedario</p>
+     <div class="bg-slate-800/60 rounded-2xl p-6 mb-6 text-left space-y-4"><label class="block"> <span class="text-sm text-slate-400">⏱️ Tiempo (segundos)</span> <input type="number" id="timeInput" value="180" min="30" max="600" step="10" class="answer-input mt-1" style="font-size:16px"> </label>
+     </div><button onclick="goToEditScreen()" class="btn-game w-full justify-center text-lg py-4 mb-3" style="background:#6366f1;color:#fff;"> <i data-lucide="edit-3" style="width:22px;height:22px"></i> Editar palabras </button><button onclick="startGame()" class="btn-game w-full justify-center text-lg py-4" style="background:#f59e0b;color:#1e293b;"> <i data-lucide="play" style="width:22px;height:22px"></i> ¡Empezar! </button>
+    </div>
+   </div><!-- GAME SCREEN -->
+   <div id="gameScreen" class="w-full h-full flex-col items-center p-4 hidden" style="max-width:600px">
+    <h2 id="gameTitleDisplay" class="text-center text-xl font-bold mb-2" style="color:#f59e0b">enREDados</h2><!-- Timer -->
+    <div class="flex items-center justify-center gap-3 mb-2">
+     <svg width="48" height="48" viewbox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="none" stroke="#1e293b" stroke-width="4" /> <circle id="timerRing" class="timer-ring" cx="24" cy="24" r="20" fill="none" stroke="#f59e0b" stroke-width="4" stroke-dasharray="125.66" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 24 24)" />
+     </svg><span id="timerDisplay" class="text-3xl font-bold" style="font-family:'Space Mono',monospace; color:#f59e0b">3:00</span>
+    </div><!-- Rosco -->
+    <div class="rosco-container" style="max-width:400px; margin:0 auto;">
+     <div class="rosco-inner" id="rosco"></div>
+    </div><!-- Clue area -->
+    <div class="fade-in mt-2 text-center">
+     <p class="text-sm text-slate-400 mb-1" id="cluePrefix">Empieza por la A:</p>
+     <p class="text-lg font-medium mb-3" id="clueText" style="min-height:52px"></p>
+     <form id="answerForm" class="flex gap-2 mb-3"><input type="text" id="answerInput" class="answer-input flex-1" placeholder="Tu respuesta..." autocomplete="off"> <button type="submit" class="btn-game" style="background:#22c55e;color:#fff"> <i data-lucide="check" style="width:20px;height:20px"></i> </button>
+     </form>
+     <div class="flex gap-2 justify-center"><button onclick="pasapalabra()" class="btn-game" style="background:#6366f1;color:#fff"> <i data-lucide="skip-forward" style="width:18px;height:18px"></i> Pasapalabra </button> <button onclick="togglePause()" id="pauseBtn" class="btn-game" style="background:#334155;color:#e2e8f0"> <i data-lucide="pause" style="width:18px;height:18px"></i> Pausa </button>
+     </div>
+    </div><!-- Score bar -->
+    <div class="flex justify-center gap-6 mt-3 text-sm"><span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full inline-block" style="background:#22c55e"></span> Aciertos: <b id="correctCount">0</b></span> <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full inline-block" style="background:#ef4444"></span> Fallos: <b id="wrongCount">0</b></span> <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full inline-block" style="background:#6366f1"></span> Pendientes: <b id="pendingCount">25</b></span>
+    </div>
+   </div><!-- PAUSE OVERLAY -->
+   <div id="pauseOverlay" class="result-overlay hidden">
+    <div class="text-center fade-in">
+     <div class="text-6xl mb-4">
+      ⏸️
+     </div>
+     <h2 class="text-3xl font-bold mb-4">Juego en pausa</h2><button onclick="togglePause()" class="btn-game text-lg py-3 px-8" style="background:#f59e0b;color:#1e293b"> <i data-lucide="play" style="width:20px;height:20px"></i> Continuar </button>
+    </div>
+   </div><!-- RESULT OVERLAY -->
+   <div id="resultOverlay" class="result-overlay hidden">
+    <div class="text-center fade-in bg-slate-900 rounded-3xl p-8 mx-4" style="max-width:400px">
+     <div class="text-6xl mb-3" id="resultEmoji">
+      🏆
+     </div>
+     <h2 class="text-3xl font-bold mb-2" id="resultTitle">¡Fin del juego!</h2>
+     <p class="text-slate-400 mb-4" id="resultSub"></p>
+     <div class="flex justify-center gap-6 mb-6">
+      <div class="text-center">
+       <div class="text-3xl font-bold" style="color:#22c55e" id="finalCorrect">
+        0
+       </div>
+       <div class="text-xs text-slate-400">
+        Aciertos
+       </div>
+      </div>
+      <div class="text-center">
+       <div class="text-3xl font-bold" style="color:#ef4444" id="finalWrong">
+        0
+       </div>
+       <div class="text-xs text-slate-400">
+        Fallos
+       </div>
+      </div>
+      <div class="text-center">
+       <div class="text-3xl font-bold" style="color:#6366f1" id="finalPending">
+        0
+       </div>
+       <div class="text-xs text-slate-400">
+        Pendientes
+       </div>
+      </div>
+     </div><button onclick="resetGame()" class="btn-game w-full justify-center text-lg py-3" style="background:#f59e0b;color:#1e293b"> <i data-lucide="rotate-ccw" style="width:20px;height:20px"></i> Jugar de nuevo </button>
+    </div>
+   </div><!-- EDIT SCREEN -->
+   <div id="editScreen" class="w-full h-full flex-col items-center p-4 hidden overflow-auto" style="max-width:600px">
+    <h2 class="text-center text-2xl font-bold mb-4" style="color:#f59e0b">Editar palabras</h2>
+    <div id="editList" class="w-full space-y-3 mb-6"></div>
+    <div class="flex gap-2 justify-center sticky bottom-0 bg-[#0a0e1a] py-4 w-full">
+     <button onclick="goBackToStart()" class="btn-game" style="background:#334155;color:#e2e8f0"> <i data-lucide="x" style="width:18px;height:18px"></i> Cancelar </button> <button onclick="startGame()" class="btn-game" style="background:#f59e0b;color:#1e293b"> <i data-lucide="play" style="width:18px;height:18px"></i> ¡Empezar! </button>
+    </div>
+   </div>
+  </div>
+  <script>
+// Questions database
+const QUESTIONS = {
+  A: { clue: "Fruto del almendro", answer: "almendra" },
+  B: { clue: "Embarcación de remos", answer: "barca" },
+  C: { clue: "Animal doméstico que maúlla", answer: "gato", contains: true },
+  D: { clue: "Parte de la mano donde se lleva el anillo", answer: "dedo" },
+  E: { clue: "Astro que ilumina la Tierra", answer: "estrella" },
+  F: { clue: "Deporte que se juega con balón y portería", answer: "futbol" },
+  G: { clue: "Animal que vive en granjas y pone huevos", answer: "gallina" },
+  H: { clue: "Lugar donde se cultivan verduras y frutas", answer: "huerto" },
+  I: { clue: "Lugar de culto cristiano", answer: "iglesia" },
+  J: { clue: "Actividad lúdica de niños y adultos", answer: "juego" },
+  K: { clue: "Contiene la K: Fruta verde por fuera y verde por dentro, originaria de Nueva Zelanda", answer: "kiwi" },
+  L: { clue: "Satélite natural de la Tierra", answer: "luna" },
+  M: { clue: "Insecto que pica y zumba", answer: "mosquito" },
+  N: { clue: "Precipitación blanca y fría que cae en invierno", answer: "nieve" },
+  O: { clue: "Estación del año en que caen las hojas", answer: "otoño" },
+  P: { clue: "Ave de plumaje colorido que puede hablar", answer: "papagayo" },
+  Q: { clue: "Producto lácteo sólido que se obtiene de la leche", answer: "queso" },
+  R: { clue: "Flor con espinas símbolo del amor", answer: "rosa" },
+  S: { clue: "Astro rey que nos da luz y calor", answer: "sol" },
+  T: { clue: "Reptil con caparazón que camina lento", answer: "tortuga" },
+  U: { clue: "Fruta pequeña, morada y dulce con la que se hace vino", answer: "uva" },
+  V: { clue: "Estación cálida con vacaciones escolares", answer: "verano" },
+  W: { clue: "Contiene la W: Red mundial de información digital", answer: "web" },
+  X: { clue: "Contiene la X: Instrumento musical de láminas de madera", answer: "xilofono" },
+  Y: { clue: "Contiene la Y: Persona que monta a caballo profesionalmente", answer: "yockey" },
+  Z: { clue: "Calzado para los pies", answer: "zapato" }
+};
+
+const LETTERS = Object.keys(QUESTIONS);
+let state, timer, totalTime, paused;
+
+function normalize(s) {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+}
+
+function initState(seconds) {
+  totalTime = seconds;
+  return {
+    letters: LETTERS.map(l => ({ letter: l, status: 'pending', ...QUESTIONS[l] })),
+    currentIndex: 0,
+    timeLeft: seconds,
+    correct: 0,
+    wrong: 0
+  };
+}
+
+function getCircleSize() {
+  const rosco = document.getElementById('rosco');
+  if (!rosco) return { size: 36, font: 14 };
+  const w = rosco.offsetWidth || 350;
+  const s = Math.max(24, Math.min(42, w / 11));
+  return { size: s, font: s * 0.45 };
+}
+
+function renderRosco() {
+  const el = document.getElementById('rosco');
+  el.innerHTML = '';
+  const { size, font } = getCircleSize();
+  el.style.setProperty('--circle-size', size + 'px');
+  el.style.setProperty('--font-size', font + 'px');
+  const cx = 50, cy = 50, r = 42;
+  const startAngle = -90;
+
+  state.letters.forEach((item, i) => {
+    const angle = startAngle + (i / LETTERS.length) * 360;
+    const rad = angle * Math.PI / 180;
+    const x = cx + r * Math.cos(rad);
+    const y = cy + r * Math.sin(rad);
+
+    const div = document.createElement('div');
+    div.className = `letter-circle ${item.status}${i === state.currentIndex ? ' active pulse' : ''}`;
+    div.style.left = `calc(${x}% - var(--circle-size)/2)`;
+    div.style.top = `calc(${y}% - var(--circle-size)/2)`;
+    div.textContent = item.letter;
+    div.id = 'lc-' + i;
+    el.appendChild(div);
+  });
+}
+
+function updateRoscoItem(idx) {
+  const el = document.getElementById('lc-' + idx);
+  if (!el) return;
+  const item = state.letters[idx];
+  el.className = `letter-circle ${item.status}${idx === state.currentIndex ? ' active pulse' : ''}`;
+}
+
+function updateClue() {
+  const item = state.letters[state.currentIndex];
+  const contains = QUESTIONS[item.letter].contains;
+  document.getElementById('cluePrefix').textContent = contains
+    ? `Contiene la ${item.letter}:`
+    : `Empieza por la ${item.letter}:`;
+  document.getElementById('clueText').textContent = item.clue;
+  document.getElementById('answerInput').value = '';
+  document.getElementById('answerInput').focus();
+}
+
+function updateScores() {
+  document.getElementById('correctCount').textContent = state.correct;
+  document.getElementById('wrongCount').textContent = state.wrong;
+  const pending = state.letters.filter(l => l.status === 'pending' || l.status === 'passed').length;
+  document.getElementById('pendingCount').textContent = pending;
+}
+
+function updateTimer() {
+  const m = Math.floor(state.timeLeft / 60);
+  const s = state.timeLeft % 60;
+  document.getElementById('timerDisplay').textContent = `${m}:${String(s).padStart(2,'0')}`;
+  const frac = state.timeLeft / totalTime;
+  document.getElementById('timerRing').style.strokeDashoffset = (1 - frac) * 125.66;
+  // Color change when low
+  const color = state.timeLeft <= 10 ? '#ef4444' : state.timeLeft <= 30 ? '#f59e0b' : '#f59e0b';
+  document.getElementById('timerRing').style.stroke = color;
+  document.getElementById('timerDisplay').style.color = state.timeLeft <= 10 ? '#ef4444' : '#f59e0b';
+}
+
+function findNext(fromIdx, skipCurrent) {
+  const len = state.letters.length;
+  let i = skipCurrent ? (fromIdx + 1) % len : fromIdx;
+  let checked = 0;
+  while (checked < len) {
+    const s = state.letters[i].status;
+    if (s === 'pending' || s === 'passed') return i;
+    i = (i + 1) % len;
+    checked++;
+  }
+  return -1;
+}
+
+function advanceToNext() {
+  const prev = state.currentIndex;
+  updateRoscoItem(prev);
+  const next = findNext(state.currentIndex, true);
+  if (next === -1) return endGame();
+  state.currentIndex = next;
+  updateRoscoItem(next);
+  updateClue();
+  updateScores();
+}
+
+function submitAnswer(text) {
+  if (!text.trim()) return;
+  const item = state.letters[state.currentIndex];
+  if (normalize(text) === normalize(item.answer)) {
+    item.status = 'correct';
+    state.correct++;
+  } else {
+    item.status = 'wrong';
+    state.wrong++;
+  }
+  advanceToNext();
+}
+
+function pasapalabra() {
+  state.letters[state.currentIndex].status = 'passed';
+  advanceToNext();
+}
+
+function togglePause() {
+  paused = !paused;
+  document.getElementById('pauseOverlay').classList.toggle('hidden', !paused);
+  if (paused) {
+    clearInterval(timer);
+  } else {
+    startTimer();
+    document.getElementById('answerInput').focus();
+  }
+}
+
+function startTimer() {
+  timer = setInterval(() => {
+    state.timeLeft--;
+    updateTimer();
+    if (state.timeLeft <= 0) { clearInterval(timer); endGame(); }
+  }, 1000);
+}
+
+function endGame() {
+  clearInterval(timer);
+  const pending = state.letters.filter(l => l.status === 'pending' || l.status === 'passed').length;
+  document.getElementById('finalCorrect').textContent = state.correct;
+  document.getElementById('finalWrong').textContent = state.wrong;
+  document.getElementById('finalPending').textContent = pending;
+
+  const total = LETTERS.length;
+  if (state.correct === total) {
+    document.getElementById('resultEmoji').textContent = '🏆';
+    document.getElementById('resultTitle').textContent = '¡ROSCO COMPLETADO!';
+    document.getElementById('resultSub').textContent = '¡Increíble! Has acertado todas las letras.';
+  } else if (state.correct >= total * 0.7) {
+    document.getElementById('resultEmoji').textContent = '🎉';
+    document.getElementById('resultTitle').textContent = '¡Muy bien!';
+    document.getElementById('resultSub').textContent = `Has acertado ${state.correct} de ${total} letras.`;
+  } else {
+    document.getElementById('resultEmoji').textContent = '💪';
+    document.getElementById('resultTitle').textContent = '¡Buen intento!';
+    document.getElementById('resultSub').textContent = `Has acertado ${state.correct} de ${total}. ¡Sigue practicando!`;
+  }
+  document.getElementById('resultOverlay').classList.remove('hidden');
+}
+
+function startGame() {
+  const seconds = Math.max(30, Math.min(600, parseInt(document.getElementById('timeInput').value) || 180));
+  state = initState(seconds);
+  paused = false;
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('gameScreen').classList.remove('hidden');
+  document.getElementById('gameScreen').classList.add('flex');
+  renderRosco();
+  updateClue();
+  updateTimer();
+  updateScores();
+  startTimer();
+}
+
+function resetGame() {
+  clearInterval(timer);
+  document.getElementById('resultOverlay').classList.add('hidden');
+  document.getElementById('pauseOverlay').classList.add('hidden');
+  document.getElementById('gameScreen').classList.add('hidden');
+  document.getElementById('gameScreen').classList.remove('flex');
+  document.getElementById('startScreen').classList.remove('hidden');
+}
+
+function goToEditScreen() {
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('editScreen').classList.remove('hidden');
+  document.getElementById('editScreen').classList.add('flex');
+  renderEditList();
+}
+
+function goBackToStart() {
+  document.getElementById('editScreen').classList.add('hidden');
+  document.getElementById('editScreen').classList.remove('flex');
+  document.getElementById('startScreen').classList.remove('hidden');
+}
+
+function renderEditList() {
+  const container = document.getElementById('editList');
+  container.innerHTML = '';
+  LETTERS.forEach((letter, idx) => {
+    const q = QUESTIONS[letter];
+    const div = document.createElement('div');
+    div.className = 'bg-slate-800/60 rounded-xl p-4 border border-slate-700';
+    div.innerHTML = `
+      <div class="flex items-center justify-between gap-4 mb-3">
+        <div class="flex-1">
+          <input type="text" placeholder="Palabra respuesta" value="${q.answer}" class="answer-input" data-type="answer" data-letter="${letter}" style="font-size:14px;">
+        </div>
+        <div class="text-4xl font-bold flex-shrink-0" style="color:#f59e0b; min-width:50px; text-align:center">${letter.toUpperCase()}</div>
+        <div class="flex-1">
+          <input type="text" placeholder="Definición/Pista" value="${q.clue}" class="answer-input" data-type="clue" data-letter="${letter}" style="font-size:14px;">
+        </div>
+      </div>
+      <label class="flex items-center justify-center gap-2 text-sm text-slate-400 cursor-pointer">
+        <input type="checkbox" ${q.contains ? 'checked' : ''} data-type="contains" data-letter="${letter}" class="w-4 h-4">
+        <span>Contiene la letra</span>
+      </label>
+    `;
+    container.appendChild(div);
+  });
+
+  // Add listeners to update QUESTIONS as user types
+  container.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('change', (e) => {
+      const type = e.target.dataset.type;
+      const letter = e.target.dataset.letter;
+      if (type === 'answer') QUESTIONS[letter].answer = e.target.value;
+      if (type === 'clue') QUESTIONS[letter].clue = e.target.value;
+      if (type === 'contains') QUESTIONS[letter].contains = e.target.checked;
+    });
+  });
+}
+
+document.getElementById('answerForm').addEventListener('submit', e => {
+  e.preventDefault();
+  if (paused) return;
+  submitAnswer(document.getElementById('answerInput').value);
+});
+
+// Resize handler for rosco
+window.addEventListener('resize', () => { if (state) renderRosco(); });
+
+// Element SDK
+const defaultConfig = {
+  game_title: 'Pasapalabra',
+  background_color: '#0a0e1a',
+  surface_color: '#1e293b',
+  text_color: '#e2e8f0',
+  accent_color: '#f59e0b',
+  action_color: '#22c55e',
+  font_family: 'Fredoka',
+  font_size: 16
+};
+
+function applyConfig(config) {
+  const bg = config.background_color || defaultConfig.background_color;
+  const surface = config.surface_color || defaultConfig.surface_color;
+  const text = config.text_color || defaultConfig.text_color;
+  const accent = config.accent_color || defaultConfig.accent_color;
+  const action = config.action_color || defaultConfig.action_color;
+  const font = config.font_family || defaultConfig.font_family;
+  const title = config.game_title || defaultConfig.game_title;
+
+  document.body.style.background = bg;
+  document.body.style.color = text;
+
+  document.getElementById('titleDisplay').textContent = title;
+  document.getElementById('titleDisplay').style.color = accent;
+  document.getElementById('gameTitleDisplay').textContent = title;
+  document.getElementById('gameTitleDisplay').style.color = accent;
+
+  document.querySelectorAll('.answer-input').forEach(el => {
+    el.style.background = bg;
+    el.style.borderColor = surface;
+    el.style.color = text;
+  });
+
+  document.querySelectorAll('h1,h2,p,span,b,label,div').forEach(el => {
+    el.style.fontFamily = `${font}, Fredoka, sans-serif`;
+  });
+}
+
+if (window.elementSdk) {
+  window.elementSdk.init({
+    defaultConfig,
+    onConfigChange: async (config) => applyConfig(config),
+    mapToCapabilities: (config) => ({
+      recolorables: [
+        { get: () => config.background_color || defaultConfig.background_color, set: v => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); } },
+        { get: () => config.surface_color || defaultConfig.surface_color, set: v => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); } },
+        { get: () => config.text_color || defaultConfig.text_color, set: v => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); } },
+        { get: () => config.accent_color || defaultConfig.accent_color, set: v => { config.accent_color = v; window.elementSdk.setConfig({ accent_color: v }); } },
+        { get: () => config.action_color || defaultConfig.action_color, set: v => { config.action_color = v; window.elementSdk.setConfig({ action_color: v }); } }
+      ],
+      borderables: [],
+      fontEditable: { get: () => config.font_family || defaultConfig.font_family, set: v => { config.font_family = v; window.elementSdk.setConfig({ font_family: v }); } },
+      fontSizeable: { get: () => config.font_size || defaultConfig.font_size, set: v => { config.font_size = v; window.elementSdk.setConfig({ font_size: v }); } }
+    }),
+    mapToEditPanelValues: (config) => new Map([
+      ["game_title", config.game_title || defaultConfig.game_title]
+    ])
+  });
+}
+
+lucide.createIcons();
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9e7ea151b7ca2782',t:'MTc3NTQ1NTgzNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
