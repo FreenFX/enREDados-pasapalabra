@@ -3,517 +3,767 @@
  <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pasapalabra</title>
+  <title>Pasapalabra Rosco</title>
+  <script src="/_sdk/element_sdk.js"></script>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
-  <script src="/_sdk/element_sdk.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
   <style>
-  html, body { height: 100%; margin: 0; }
-  * { font-family: 'Fredoka', sans-serif; }
+html, body { height: 100%; margin: 0; font-family: 'Outfit', sans-serif; }
+body { background: #0a0e27; color: #e2e8f0; overflow-x: hidden; }
 
-  .rosco-container { position: relative; width: 100%; padding-bottom: 100%; }
-  .rosco-inner { position: absolute; inset: 0; }
+.app-wrapper { height: 100%; width: 100%; overflow: auto; background: radial-gradient(ellipse at 50% 0%, #1a1f4e 0%, #0a0e27 60%); }
 
-  .letter-circle {
-    position: absolute;
-    width: var(--circle-size);
-    height: var(--circle-size);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: var(--font-size);
-    cursor: pointer;
-    transition: all 0.25s ease;
-    border: 3px solid transparent;
-    text-transform: uppercase;
-  }
-  .letter-circle.pending { background: #1e293b; color: #e2e8f0; border-color: #334155; }
-  .letter-circle.active { background: #f59e0b; color: #1e293b; border-color: #fbbf24; transform: scale(1.25); box-shadow: 0 0 20px rgba(245,158,11,0.6); z-index: 10; }
-  .letter-circle.correct { background: #22c55e; color: #fff; border-color: #4ade80; }
-  .letter-circle.wrong { background: #ef4444; color: #fff; border-color: #f87171; }
-  .letter-circle.passed { background: #6366f1; color: #fff; border-color: #818cf8; }
+.rosco-container { position: relative; width: 340px; height: 340px; margin: 0 auto; }
+@media(min-width:768px) { .rosco-container { width: 420px; height: 420px; } }
 
-  .pulse { animation: pulse 1.5s ease-in-out infinite; }
-  @keyframes pulse { 0%,100% { box-shadow: 0 0 20px rgba(245,158,11,0.4); } 50% { box-shadow: 0 0 35px rgba(245,158,11,0.8); } }
+.letter-node {
+  position: absolute; width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Mono', monospace; font-weight: 700; font-size: 14px;
+  transition: all 0.3s cubic-bezier(.4,0,.2,1); cursor: default;
+  border: 2px solid #334155;
+  background: #1e293b; color: #94a3b8;
+}
+@media(min-width:768px) { .letter-node { width: 42px; height: 42px; font-size: 16px; } }
 
-  .timer-ring { transition: stroke-dashoffset 1s linear; }
+.letter-node.correct { background: #059669; border-color: #34d399; color: #fff; }
+.letter-node.incorrect { background: #dc2626; border-color: #f87171; color: #fff; }
+.letter-node.pending { background: #d97706; border-color: #fbbf24; color: #fff; }
+.letter-node.active {
+  background: #2563eb; border-color: #60a5fa; color: #fff;
+  box-shadow: 0 0 20px rgba(37,99,235,0.6), 0 0 40px rgba(37,99,235,0.3);
+  transform: scale(1.25); z-index: 10;
+}
 
-  .fade-in { animation: fadeIn 0.4s ease; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.timer-ring { filter: drop-shadow(0 0 8px rgba(37,99,235,0.4)); }
 
-  .btn-game {
-    padding: 10px 20px;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 15px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .btn-game:active { transform: scale(0.96); }
+.btn-primary {
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  padding: 10px 24px; border-radius: 12px; font-weight: 700;
+  font-family: 'Outfit', sans-serif; border: none; color: #fff;
+  cursor: pointer; transition: all 0.2s; font-size: 15px;
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(37,99,235,0.4); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
 
-  input.answer-input {
-    font-family: 'Fredoka', sans-serif;
-    background: #0f172a;
-    border: 2px solid #334155;
-    color: #f1f5f9;
-    border-radius: 12px;
-    padding: 12px 16px;
-    font-size: 18px;
-    width: 100%;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  input.answer-input:focus { border-color: #f59e0b; }
-  input.answer-input::placeholder { color: #64748b; }
+.btn-secondary {
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+  padding: 10px 24px; border-radius: 12px; font-weight: 600;
+  font-family: 'Outfit', sans-serif; color: #e2e8f0;
+  cursor: pointer; transition: all 0.2s; font-size: 15px;
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.14); }
 
-  .result-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-    display: flex; align-items: center; justify-content: center; z-index: 50;
-  }
+.input-answer {
+  background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.15);
+  border-radius: 12px; padding: 12px 18px; font-size: 18px; color: #fff;
+  font-family: 'Space Mono', monospace; outline: none; width: 100%; max-width: 360px;
+  transition: border-color 0.2s;
+}
+.input-answer:focus { border-color: #60a5fa; }
+.input-answer:disabled { opacity: 0.3; }
+
+.definition-box {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px; padding: 16px 20px; max-width: 480px; margin: 0 auto;
+  min-height: 60px; display: flex; align-items: center; justify-content: center; text-align: center;
+}
+
+.score-card {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px; padding: 10px 18px; text-align: center;
+}
+
+.tab-btn {
+  padding: 8px 20px; border-radius: 10px; font-weight: 700; font-size: 14px;
+  border: 2px solid transparent; cursor: pointer; transition: all 0.2s;
+  background: rgba(255,255,255,0.06); color: #94a3b8; font-family: 'Outfit', sans-serif;
+}
+.tab-btn.active { background: #2563eb; border-color: #60a5fa; color: #fff; }
+.tab-btn:hover:not(.active) { background: rgba(255,255,255,0.12); }
+
+.flash-correct { animation: flashGreen 0.4s; }
+.flash-incorrect { animation: flashRed 0.4s; }
+@keyframes flashGreen { 0%,100%{ background: rgba(255,255,255,0.05); } 50%{ background: rgba(5,150,105,0.2); } }
+@keyframes flashRed { 0%,100%{ background: rgba(255,255,255,0.05); } 50%{ background: rgba(220,38,38,0.2); } }
+
+.pause-overlay {
+  position: absolute; inset: 0; background: rgba(10,14,39,0.85);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; z-index: 20; backdrop-filter: blur(4px);
+}
+
+.result-overlay {
+  position: fixed; inset: 0; background: rgba(10,14,39,0.92);
+  display: flex; align-items: center; justify-content: center; z-index: 50;
+  backdrop-filter: blur(8px);
+}
 </style>
   <style>body { box-sizing: border-box; }</style>
   <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
  </head>
- <body class="h-full bg-[#0a0e1a] text-slate-100 overflow-auto">
-  <div id="app" class="w-full h-full flex flex-col items-center"><!-- START SCREEN -->
-   <div id="startScreen" class="w-full h-full flex flex-col items-center justify-center p-6 fade-in">
-    <div class="text-center max-w-md w-full">
-     <div class="text-6xl mb-4">
-      🅿️
+ <body>
+  <div class="app-wrapper" id="app">
+   <!-- MENU SCREEN -->
+   <div id="menuScreen" class="flex flex-col items-center justify-center h-full px-4">
+    <div class="text-center mb-10">
+     <h1 id="gameTitle" class="text-5xl md:text-6xl font-black mb-3 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">Pasapalabra enREDados</h1>
+     <p class="text-lg text-slate-400 font-semibold">Elegí un rosco y demostrá que sos mejor</p>
+    </div>
+    <div class="flex flex-col gap-4 w-full max-w-xs">
+     <div class="flex gap-2">
+      <button class="btn-primary text-lg py-4 flex-1" onclick="startGame(0)">🔵 <span id="roscoBtn0">Rosco 1</span></button> <button class="btn-secondary py-4" onclick="editRosco(0)"><i data-lucide="edit-2" style="width:18px;height:18px;"></i></button>
      </div>
-     <h1 id="titleDisplay" class="text-4xl font-bold mb-2" style="color:#f59e0b">Pasapalabra enREDados</h1>
-     <p class="text-slate-400 mb-8">Responde las definiciones para cada letra del abecedario</p>
-     <div class="bg-slate-800/60 rounded-2xl p-6 mb-6 text-left space-y-4"><label class="block"> <span class="text-sm text-slate-400">⏱️ Tiempo (segundos)</span> <input type="number" id="timeInput" value="180" min="30" max="600" step="10" class="answer-input mt-1" style="font-size:16px"> </label>
-     </div><button onclick="goToEditScreen()" class="btn-game w-full justify-center text-lg py-4 mb-3" style="background:#6366f1;color:#fff;"> <i data-lucide="edit-3" style="width:22px;height:22px"></i> Editar palabras </button><button onclick="startGame()" class="btn-game w-full justify-center text-lg py-4" style="background:#f59e0b;color:#1e293b;"> <i data-lucide="play" style="width:22px;height:22px"></i> ¡Empezar! </button>
+     <div class="flex gap-2">
+      <button class="btn-primary text-lg py-4 flex-1" style="background:linear-gradient(135deg,#059669,#2563eb)" onclick="startGame(1)">🟢 <span id="roscoBtn1">Rosco 2</span></button> <button class="btn-secondary py-4" onclick="editRosco(1)"><i data-lucide="edit-2" style="width:18px;height:18px;"></i></button>
+     </div>
+     <div class="flex gap-2">
+      <button class="btn-primary text-lg py-4 flex-1" style="background:linear-gradient(135deg,#d97706,#dc2626)" onclick="startGame(2)">🟠 <span id="roscoBtn2">Rosco 3</span></button> <button class="btn-secondary py-4" onclick="editRosco(2)"><i data-lucide="edit-2" style="width:18px;height:18px;"></i></button>
+     </div>
     </div>
    </div><!-- GAME SCREEN -->
-   <div id="gameScreen" class="w-full h-full flex-col items-center p-4 hidden" style="max-width:600px">
-    <h2 id="gameTitleDisplay" class="text-center text-xl font-bold mb-2" style="color:#f59e0b">enREDados</h2><!-- Timer -->
-    <div class="flex items-center justify-center gap-3 mb-2">
-     <svg width="48" height="48" viewbox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="none" stroke="#1e293b" stroke-width="4" /> <circle id="timerRing" class="timer-ring" cx="24" cy="24" r="20" fill="none" stroke="#f59e0b" stroke-width="4" stroke-dasharray="125.66" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 24 24)" />
-     </svg><span id="timerDisplay" class="text-3xl font-bold" style="font-family:'Space Mono',monospace; color:#f59e0b">3:00</span>
+   <div id="gameScreen" class="hidden flex flex-col items-center px-4 py-4" style="min-height:100%;">
+    <!-- Top bar -->
+    <div class="flex items-center justify-between w-full max-w-xl mb-3">
+     <button class="btn-secondary text-sm py-2 px-4" onclick="backToMenu()"><i data-lucide="arrow-left" style="width:16px;height:16px;display:inline;vertical-align:middle;"></i> Menú</button>
+     <div class="flex gap-2">
+      <button id="tabBtn0" class="tab-btn active" onclick="switchRosco(0)"><span id="tabName0">Rosco 1</span></button> <button id="tabBtn1" class="tab-btn" onclick="switchRosco(1)"><span id="tabName1">Rosco 2</span></button> <button id="tabBtn2" class="tab-btn" onclick="switchRosco(2)"><span id="tabName2">Rosco 3</span></button>
+     </div>
+    </div><!-- Scores -->
+    <div class="flex gap-3 mb-3">
+     <div class="score-card"><span class="text-green-400 font-bold text-xl" id="correctCount">0</span><br><span class="text-xs text-slate-400">Correctas</span>
+     </div>
+     <div class="score-card"><span class="text-red-400 font-bold text-xl" id="incorrectCount">0</span><br><span class="text-xs text-slate-400">Incorrectas</span>
+     </div>
+     <div class="score-card"><span class="text-yellow-400 font-bold text-xl" id="pendingCount">26</span><br><span class="text-xs text-slate-400">Pendientes</span>
+     </div>
+     <div class="score-card"><span class="text-blue-400 font-bold text-xl" id="scoreDisplay">0</span><br><span class="text-xs text-slate-400">Puntos</span>
+     </div>
     </div><!-- Rosco -->
-    <div class="rosco-container" style="max-width:400px; margin:0 auto;">
-     <div class="rosco-inner" id="rosco"></div>
-    </div><!-- Clue area -->
-    <div class="fade-in mt-2 text-center">
-     <p class="text-sm text-slate-400 mb-1" id="cluePrefix">Empieza por la A:</p>
-     <p class="text-lg font-medium mb-3" id="clueText" style="min-height:52px"></p>
-     <form id="answerForm" class="flex gap-2 mb-3"><input type="text" id="answerInput" class="answer-input flex-1" placeholder="Tu respuesta..." autocomplete="off"> <button type="submit" class="btn-game" style="background:#22c55e;color:#fff"> <i data-lucide="check" style="width:20px;height:20px"></i> </button>
-     </form>
-     <div class="flex gap-2 justify-center"><button onclick="pasapalabra()" class="btn-game" style="background:#6366f1;color:#fff"> <i data-lucide="skip-forward" style="width:18px;height:18px"></i> Pasapalabra </button> <button onclick="togglePause()" id="pauseBtn" class="btn-game" style="background:#334155;color:#e2e8f0"> <i data-lucide="pause" style="width:18px;height:18px"></i> Pausa </button>
+    <div class="rosco-container" id="roscoContainer">
+     <!-- Timer in center -->
+     <div class="absolute inset-0 flex flex-col items-center justify-center z-0">
+      <svg class="timer-ring" width="120" height="120" viewbox="0 0 120 120">
+       <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6" /> <circle id="timerCircle" cx="60" cy="60" r="52" fill="none" stroke="#60a5fa" stroke-width="6" stroke-dasharray="326.73" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 60 60)" style="transition: stroke-dashoffset 1s linear;" />
+      </svg>
+      <div class="absolute text-3xl font-black font-mono" id="timerText">
+       3:00
+      </div>
+     </div><!-- Pause overlay -->
+     <div id="pauseOverlay" class="pause-overlay hidden">
+      <div class="text-center">
+       <i data-lucide="pause" style="width:48px;height:48px;margin:0 auto 8px;display:block;color:#60a5fa;"></i>
+       <p class="font-bold text-lg">Pausado</p>
+      </div>
+     </div><!-- Letters placed by JS -->
+    </div><!-- Definition -->
+    <div class="definition-box mt-4 mb-3" id="definitionBox">
+     <p id="definitionText" class="text-base md:text-lg text-slate-300">Presioná <b>Iniciar</b> para comenzar</p>
+    </div><!-- Input area -->
+    <div class="flex flex-col items-center gap-3 w-full">
+     <input type="text" id="answerInput" class="input-answer" placeholder="Tu respuesta..." disabled autocomplete="off">
+     <div class="flex gap-3 flex-wrap justify-center">
+      <button id="submitBtn" class="btn-primary" onclick="submitAnswer()" disabled>Responder</button> <button id="passBtn" class="btn-secondary" onclick="passWord()" disabled>Pasapalabra</button> <button id="pauseBtn" class="btn-secondary" onclick="togglePause()" disabled> <i data-lucide="pause" style="width:16px;height:16px;display:inline;vertical-align:middle;"></i> Pausa </button> <button id="startBtn" class="btn-primary" onclick="beginRound()" style="background:linear-gradient(135deg,#059669,#10b981)"> <i data-lucide="play" style="width:16px;height:16px;display:inline;vertical-align:middle;"></i> Iniciar </button>
      </div>
-    </div><!-- Score bar -->
-    <div class="flex justify-center gap-6 mt-3 text-sm"><span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full inline-block" style="background:#22c55e"></span> Aciertos: <b id="correctCount">0</b></span> <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full inline-block" style="background:#ef4444"></span> Fallos: <b id="wrongCount">0</b></span> <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full inline-block" style="background:#6366f1"></span> Pendientes: <b id="pendingCount">25</b></span>
-    </div>
-   </div><!-- PAUSE OVERLAY -->
-   <div id="pauseOverlay" class="result-overlay hidden">
-    <div class="text-center fade-in">
-     <div class="text-6xl mb-4">
-      ⏸️
-     </div>
-     <h2 class="text-3xl font-bold mb-4">Juego en pausa</h2><button onclick="togglePause()" class="btn-game text-lg py-3 px-8" style="background:#f59e0b;color:#1e293b"> <i data-lucide="play" style="width:20px;height:20px"></i> Continuar </button>
     </div>
    </div><!-- RESULT OVERLAY -->
    <div id="resultOverlay" class="result-overlay hidden">
-    <div class="text-center fade-in bg-slate-900 rounded-3xl p-8 mx-4" style="max-width:400px">
-     <div class="text-6xl mb-3" id="resultEmoji">
-      🏆
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl p-8 mx-4 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+     <div class="text-center mb-6">
+      <div id="resultEmoji" class="text-6xl mb-4">
+       🏆
+      </div>
+      <h2 id="resultTitle" class="text-3xl font-black mb-2">¡Terminó!</h2>
+      <p id="resultSummary" class="text-slate-400 mb-4 text-lg"></p>
      </div>
-     <h2 class="text-3xl font-bold mb-2" id="resultTitle">¡Fin del juego!</h2>
-     <p class="text-slate-400 mb-4" id="resultSub"></p>
-     <div class="flex justify-center gap-6 mb-6">
-      <div class="text-center">
-       <div class="text-3xl font-bold" style="color:#22c55e" id="finalCorrect">
-        0
-       </div>
-       <div class="text-xs text-slate-400">
-        Aciertos
-       </div>
-      </div>
-      <div class="text-center">
-       <div class="text-3xl font-bold" style="color:#ef4444" id="finalWrong">
-        0
-       </div>
-       <div class="text-xs text-slate-400">
-        Fallos
-       </div>
-      </div>
-      <div class="text-center">
-       <div class="text-3xl font-bold" style="color:#6366f1" id="finalPending">
-        0
-       </div>
-       <div class="text-xs text-slate-400">
-        Pendientes
-       </div>
-      </div>
-     </div><button onclick="resetGame()" class="btn-game w-full justify-center text-lg py-3" style="background:#f59e0b;color:#1e293b"> <i data-lucide="rotate-ccw" style="width:20px;height:20px"></i> Jugar de nuevo </button>
+     <div id="resultDetails" class="space-y-4 mb-6 text-sm max-h-64 overflow-y-auto">
+     </div>
+     <div class="flex gap-3 justify-center flex-wrap">
+      <button class="btn-primary" onclick="retryRosco()">Reintentar</button> <button class="btn-secondary" onclick="closeResult()">Menú</button>
+     </div>
     </div>
-   </div><!-- EDIT SCREEN -->
-   <div id="editScreen" class="w-full h-full flex-col items-center p-4 hidden overflow-auto" style="max-width:600px">
-    <h2 class="text-center text-2xl font-bold mb-4" style="color:#f59e0b">Editar palabras</h2>
-    <div id="editList" class="w-full space-y-3 mb-6"></div>
-    <div class="flex gap-2 justify-center sticky bottom-0 bg-[#0a0e1a] py-4 w-full">
-     <button onclick="goBackToStart()" class="btn-game" style="background:#334155;color:#e2e8f0"> <i data-lucide="x" style="width:18px;height:18px"></i> Cancelar </button> <button onclick="startGame()" class="btn-game" style="background:#f59e0b;color:#1e293b"> <i data-lucide="play" style="width:18px;height:18px"></i> ¡Empezar! </button>
+   </div><!-- EDIT MODAL -->
+   <div id="editModal" class="result-overlay hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl p-8 mx-4 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+     <div class="flex items-center justify-between mb-6">
+      <h2 id="editTitle" class="text-2xl font-black">Editar Rosco</h2><button onclick="closeEditModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" style="width:24px;height:24px;"></i></button>
+     </div>
+     <div id="editContent" class="space-y-4 mb-6">
+     </div>
+     <div class="flex gap-3 justify-center flex-wrap">
+      <button class="btn-primary" onclick="saveEditedRosco()">Guardar cambios</button> <button class="btn-secondary" onclick="closeEditModal()">Cancelar</button>
+     </div>
     </div>
    </div>
   </div>
   <script>
-// Questions database
-const QUESTIONS = {
-  A: { clue: "Fruto del almendro", answer: "almendra" },
-  B: { clue: "Embarcación de remos", answer: "barca" },
-  C: { clue: "Animal doméstico que maúlla", answer: "gato", contains: true },
-  D: { clue: "Parte de la mano donde se lleva el anillo", answer: "dedo" },
-  E: { clue: "Astro que ilumina la Tierra", answer: "estrella" },
-  F: { clue: "Deporte que se juega con balón y portería", answer: "futbol" },
-  G: { clue: "Animal que vive en granjas y pone huevos", answer: "gallina" },
-  H: { clue: "Lugar donde se cultivan verduras y frutas", answer: "huerto" },
-  I: { clue: "Lugar de culto cristiano", answer: "iglesia" },
-  J: { clue: "Actividad lúdica de niños y adultos", answer: "juego" },
-  K: { clue: "Contiene la K: Fruta verde por fuera y verde por dentro, originaria de Nueva Zelanda", answer: "kiwi" },
-  L: { clue: "Satélite natural de la Tierra", answer: "luna" },
-  M: { clue: "Insecto que pica y zumba", answer: "mosquito" },
-  N: { clue: "Precipitación blanca y fría que cae en invierno", answer: "nieve" },
-  O: { clue: "Estación del año en que caen las hojas", answer: "otoño" },
-  P: { clue: "Ave de plumaje colorido que puede hablar", answer: "papagayo" },
-  Q: { clue: "Producto lácteo sólido que se obtiene de la leche", answer: "queso" },
-  R: { clue: "Flor con espinas símbolo del amor", answer: "rosa" },
-  S: { clue: "Astro rey que nos da luz y calor", answer: "sol" },
-  T: { clue: "Reptil con caparazón que camina lento", answer: "tortuga" },
-  U: { clue: "Fruta pequeña, morada y dulce con la que se hace vino", answer: "uva" },
-  V: { clue: "Estación cálida con vacaciones escolares", answer: "verano" },
-  W: { clue: "Contiene la W: Red mundial de información digital", answer: "web" },
-  X: { clue: "Contiene la X: Instrumento musical de láminas de madera", answer: "xilofono" },
-  Y: { clue: "Contiene la Y: Persona que monta a caballo profesionalmente", answer: "yockey" },
-  Z: { clue: "Calzado para los pies", answer: "zapato" }
-};
+// ============= ROSCO DATA =============
+const ROSCOS = [
+  // ROSCO 1
+  [
+    {l:"A",d:"Empieza con A: Instrumento musical de cuerdas que se toca pulsándolas.",a:"arpa"},
+    {l:"B",d:"Empieza con B: Recipiente de vidrio utilizado para beber líquidos.",a:"botella"},
+    {l:"C",d:"Empieza con C: Órgano muscular que bombea la sangre por el cuerpo.",a:"corazon"},
+    {l:"D",d:"Empieza con D: Parte de la mano que sirve para señalar.",a:"dedo"},
+    {l:"E",d:"Empieza con E: Fenómeno natural de emisión de lava por un volcán.",a:"erupcion"},
+    {l:"F",d:"Empieza con F: Aparato que produce luz artificial.",a:"faro"},
+    {l:"G",d:"Empieza con G: Felino doméstico muy popular como mascota.",a:"gato"},
+    {l:"H",d:"Empieza con H: Alimento congelado que se consume como postre frío.",a:"helado"},
+    {l:"I",d:"Empieza con I: Estación del año más fría.",a:"invierno"},
+    {l:"J",d:"Empieza con J: Persona que juega en un equipo deportivo.",a:"jugador"},
+    {l:"K",d:"Contiene K: Deporte acuático que se practica en un bote ligero con remo.",a:"kayak"},
+    {l:"L",d:"Empieza con L: Satélite natural de la Tierra.",a:"luna"},
+    {l:"M",d:"Empieza con M: Instrumento que se usa para ver objetos muy pequeños.",a:"microscopio"},
+    {l:"N",d:"Empieza con N: Capa blanca que cae del cielo en invierno.",a:"nieve"},
+    {l:"O",d:"Empieza con O: Estación del año entre verano e invierno.",a:"otono"},
+    {l:"P",d:"Empieza con P: Ave tropical de plumaje colorido que puede imitar voces.",a:"papagayo"},
+    {l:"Q",d:"Empieza con Q: Alimento lácteo sólido que se obtiene de la leche.",a:"queso"},
+    {l:"R",d:"Empieza con R: Aparato que indica la hora.",a:"reloj"},
+    {l:"S",d:"Empieza con S: Astro rey que ilumina la Tierra.",a:"sol"},
+    {l:"T",d:"Empieza con T: Instrumento de percusión que se toca con baquetas.",a:"tambor"},
+    {l:"U",d:"Empieza con U: Fruta pequeña, redonda, que crece en racimos en la vid.",a:"uva"},
+    {l:"V",d:"Empieza con V: Abertura en una pared que permite ver el exterior.",a:"ventana"},
+    {l:"W",d:"Contiene W: Red informática mundial de acceso público.",a:"web"},
+    {l:"X",d:"Contiene X: Instrumento musical de láminas que se golpea con mazas.",a:"xilofono"},
+    {l:"Y",d:"Contiene Y: Embarcación de recreo de gran tamaño.",a:"yate"},
+    {l:"Z",d:"Empieza con Z: Lugar donde se exhiben animales de diferentes especies.",a:"zoologico"}
+  ],
+  // ROSCO 2
+  [
+    {l:"A",d:"Empieza con A: Arte de cultivar la tierra para obtener alimentos.",a:"agricultura"},
+    {l:"B",d:"Empieza con B: Prenda de calzado que cubre el pie y parte de la pierna.",a:"bota"},
+    {l:"C",d:"Empieza con C: Vehículo de cuatro ruedas impulsado por un motor.",a:"coche"},
+    {l:"D",d:"Empieza con D: Reptil prehistórico extinto hace millones de años.",a:"dinosaurio"},
+    {l:"E",d:"Empieza con E: Masa de agua salada que cubre gran parte del planeta.",a:"oceano"},
+    {l:"F",d:"Empieza con F: Manifestación de alegría popular con música y baile.",a:"fiesta"},
+    {l:"G",d:"Empieza con G: Accesorio que protege las manos del frío.",a:"guante"},
+    {l:"H",d:"Empieza con H: Insecto que produce miel y cera.",a:"abeja"},
+    {l:"I",d:"Empieza con I: Territorio rodeado de agua por todas partes.",a:"isla"},
+    {l:"J",d:"Empieza con J: Actividad lúdica con reglas para divertirse.",a:"juego"},
+    {l:"K",d:"Contiene K: Prenda tradicional japonesa de mangas anchas.",a:"kimono"},
+    {l:"L",d:"Empieza con L: Mamífero felino, conocido como el rey de la selva.",a:"leon"},
+    {l:"M",d:"Empieza con M: Fruto tropical de pulpa dulce y anaranjada.",a:"mango"},
+    {l:"N",d:"Empieza con N: Embarcación grande que navega por el mar.",a:"navio"},
+    {l:"O",d:"Empieza con O: Profesional de la salud que trata los ojos.",a:"oftalmologo"},
+    {l:"P",d:"Empieza con P: Objeto plegable que protege de la lluvia.",a:"paraguas"},
+    {l:"Q",d:"Empieza con Q: Sustancia utilizada en laboratorios y procesos industriales.",a:"quimica"},
+    {l:"R",d:"Empieza con R: Corriente de agua dulce que desemboca en el mar.",a:"rio"},
+    {l:"S",d:"Empieza con S: Fenómeno onírico que ocurre al dormir.",a:"sueno"},
+    {l:"T",d:"Empieza con T: Medio de comunicación con pantalla para ver programas.",a:"television"},
+    {l:"U",d:"Empieza con U: Institución educativa de nivel superior.",a:"universidad"},
+    {l:"V",d:"Empieza con V: Instrumento de cuerda que se toca con arco.",a:"violin"},
+    {l:"W",d:"Contiene W: Deporte acuático de deslizarse sobre olas con una tabla.",a:"windsurf"},
+    {l:"X",d:"Contiene X: Que tiene propiedades venenosas o nocivas.",a:"toxico"},
+    {l:"Y",d:"Empieza con Y: Planta herbácea usada para hacer infusiones.",a:"yerba"},
+    {l:"Z",d:"Empieza con Z: Calzado ligero de verano que deja el pie descubierto.",a:"zapatilla"}
+  ],
+  // ROSCO 3
+  [
+    {l:"A",d:"Empieza con A: Ciencia que estudia los astros y el universo.",a:"astronomia"},
+    {l:"B",d:"Empieza con B: Pieza esférica que se usa en muchos deportes.",a:"balon"},
+    {l:"C",d:"Empieza con C: Prenda de vestir que cubre el torso con botones.",a:"camisa"},
+    {l:"D",d:"Empieza con D: Región árida con escasa vegetación y mucha arena.",a:"desierto"},
+    {l:"E",d:"Empieza con E: Aparato mecánico que sube y baja personas entre pisos.",a:"ascensor"},
+    {l:"F",d:"Empieza con F: Deporte donde se disputa con dos equipos y un balón.",a:"futbol"},
+    {l:"G",d:"Empieza con G: Masa de hielo que se desplaza lentamente por un valle.",a:"glaciar"},
+    {l:"H",d:"Empieza con H: Relato de hechos pasados de una civilización.",a:"historia"},
+    {l:"I",d:"Empieza con I: Capacidad de comprender y resolver problemas.",a:"inteligencia"},
+    {l:"J",d:"Empieza con J: Piedra preciosa de color verde muy valorada.",a:"jade"},
+    {l:"K",d:"Contiene K: Unidad de peso equivalente a mil gramos.",a:"kilo"},
+    {l:"L",d:"Empieza con L: Fuente de luz portátil alimentada por electricidad.",a:"linterna"},
+    {l:"M",d:"Empieza con M: Composición artística de sonidos y ritmos.",a:"musica"},
+    {l:"N",d:"Empieza con N: Relato literario extenso de ficción.",a:"novela"},
+    {l:"O",d:"Empieza con O: Competición deportiva internacional cada cuatro años.",a:"olimpiadas"},
+    {l:"P",d:"Empieza con P: Representación artística realizada con pintura sobre lienzo.",a:"pintura"},
+    {l:"Q",d:"Empieza con Q: Alimento lácteo sólido que se obtiene de la leche.",a:"queso"},
+    {l:"R",d:"Empieza con R: Mecanismo de engranajes que funciona con cuerda.",a:"reloj"},
+    {l:"S",d:"Empieza con S: Sensación de necesitar ingerir líquidos.",a:"sed"},
+    {l:"T",d:"Empieza con T: Fenómeno atmosférico con lluvia intensa y rayos.",a:"tormenta"},
+    {l:"U",d:"Empieza con U: Que es el único en su especie, sin igual.",a:"unico"},
+    {l:"V",d:"Empieza con V: Montaña con abertura por donde sale lava.",a:"volcan"},
+    {l:"W",d:"Contiene W: Plataforma digital de mensajería muy popular.",a:"whatsapp"},
+    {l:"X",d:"Contiene X: Evaluación médica para verificar el estado de salud.",a:"examen"},
+    {l:"Y",d:"Empieza con Y: Metal precioso de color amarillo brillante.",a:"oro"},
+    {l:"Z",d:"Empieza con Z: Animal equino con rayas blancas y negras.",a:"cebra"}
+  ]
+];
 
-const LETTERS = Object.keys(QUESTIONS);
-let state, timer, totalTime, paused;
+let roscoNames = ['Rosco 1', 'Rosco 2', 'Rosco 3'];
 
-function normalize(s) {
-  return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+// ============= GAME STATE =============
+let currentRosco = 0;
+let gameState = 'idle'; // idle, playing, paused, finished
+let letterStates = []; // 'unanswered','correct','incorrect','pending'
+let currentIndex = 0;
+let score = 0, corrects = 0, incorrects = 0;
+let timeLeft = 180;
+let timerInterval = null;
+const TOTAL_TIME = 180;
+
+// ============= NORMALIZE =============
+function normalize(str) {
+  return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'').trim();
 }
 
-function initState(seconds) {
-  totalTime = seconds;
-  return {
-    letters: LETTERS.map(l => ({ letter: l, status: 'pending', ...QUESTIONS[l] })),
-    currentIndex: 0,
-    timeLeft: seconds,
-    correct: 0,
-    wrong: 0
-  };
-}
-
-function getCircleSize() {
-  const rosco = document.getElementById('rosco');
-  if (!rosco) return { size: 36, font: 14 };
-  const w = rosco.offsetWidth || 350;
-  const s = Math.max(24, Math.min(42, w / 11));
-  return { size: s, font: s * 0.45 };
-}
-
+// ============= ROSCO RENDERING =============
 function renderRosco() {
-  const el = document.getElementById('rosco');
-  el.innerHTML = '';
-  const { size, font } = getCircleSize();
-  el.style.setProperty('--circle-size', size + 'px');
-  el.style.setProperty('--font-size', font + 'px');
-  const cx = 50, cy = 50, r = 42;
-  const startAngle = -90;
+  const container = document.getElementById('roscoContainer');
+  // Remove old letter nodes
+  container.querySelectorAll('.letter-node').forEach(n => n.remove());
 
-  state.letters.forEach((item, i) => {
-    const angle = startAngle + (i / LETTERS.length) * 360;
-    const rad = angle * Math.PI / 180;
-    const x = cx + r * Math.cos(rad);
-    const y = cy + r * Math.sin(rad);
+  const letters = ROSCOS[currentRosco];
+  const count = letters.length;
+  const rect = container.getBoundingClientRect();
+  const w = rect.width || 340, h = rect.height || 340;
+  const cx = w / 2, cy = h / 2;
+  const nodeSize = w > 400 ? 42 : 36;
+  const radius = (Math.min(w, h) / 2) - nodeSize / 2 - 4;
 
-    const div = document.createElement('div');
-    div.className = `letter-circle ${item.status}${i === state.currentIndex ? ' active pulse' : ''}`;
-    div.style.left = `calc(${x}% - var(--circle-size)/2)`;
-    div.style.top = `calc(${y}% - var(--circle-size)/2)`;
-    div.textContent = item.letter;
-    div.id = 'lc-' + i;
-    el.appendChild(div);
+  letters.forEach((item, i) => {
+    const angle = (2 * Math.PI * i / count) - Math.PI / 2;
+    const x = cx + radius * Math.cos(angle) - nodeSize / 2;
+    const y = cy + radius * Math.sin(angle) - nodeSize / 2;
+
+    const node = document.createElement('div');
+    node.className = 'letter-node';
+    node.id = 'node-' + i;
+    node.textContent = item.l;
+    node.style.left = x + 'px';
+    node.style.top = y + 'px';
+    node.style.width = nodeSize + 'px';
+    node.style.height = nodeSize + 'px';
+    container.appendChild(node);
+  });
+  updateRoscoVisuals();
+}
+
+function updateRoscoVisuals() {
+  const letters = ROSCOS[currentRosco];
+  letters.forEach((_, i) => {
+    const node = document.getElementById('node-' + i);
+    if (!node) return;
+    node.className = 'letter-node';
+    if (letterStates[i] === 'correct') node.classList.add('correct');
+    else if (letterStates[i] === 'incorrect') node.classList.add('incorrect');
+    else if (letterStates[i] === 'pending') node.classList.add('pending');
+    if (i === currentIndex && gameState === 'playing') node.classList.add('active');
   });
 }
 
-function updateRoscoItem(idx) {
-  const el = document.getElementById('lc-' + idx);
-  if (!el) return;
-  const item = state.letters[idx];
-  el.className = `letter-circle ${item.status}${idx === state.currentIndex ? ' active pulse' : ''}`;
+// ============= TIMER =============
+function updateTimerDisplay() {
+  const m = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+  document.getElementById('timerText').textContent = m + ':' + String(s).padStart(2, '0');
+  const circle = document.getElementById('timerCircle');
+  const circumference = 326.73;
+  const offset = circumference * (1 - timeLeft / TOTAL_TIME);
+  circle.style.strokeDashoffset = offset;
+  circle.style.stroke = timeLeft <= 30 ? '#ef4444' : timeLeft <= 60 ? '#f59e0b' : '#60a5fa';
 }
 
-function updateClue() {
-  const item = state.letters[state.currentIndex];
-  const contains = QUESTIONS[item.letter].contains;
-  document.getElementById('cluePrefix').textContent = contains
-    ? `Contiene la ${item.letter}:`
-    : `Empieza por la ${item.letter}:`;
-  document.getElementById('clueText').textContent = item.clue;
-  document.getElementById('answerInput').value = '';
-  document.getElementById('answerInput').focus();
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (gameState !== 'playing') return;
+    timeLeft--;
+    updateTimerDisplay();
+    if (timeLeft <= 0) { clearInterval(timerInterval); endGame(); }
+  }, 1000);
 }
 
+// ============= SCORES =============
 function updateScores() {
-  document.getElementById('correctCount').textContent = state.correct;
-  document.getElementById('wrongCount').textContent = state.wrong;
-  const pending = state.letters.filter(l => l.status === 'pending' || l.status === 'passed').length;
-  document.getElementById('pendingCount').textContent = pending;
+  document.getElementById('correctCount').textContent = corrects;
+  document.getElementById('incorrectCount').textContent = incorrects;
+  const pend = letterStates.filter(s => s === 'unanswered' || s === 'pending').length;
+  document.getElementById('pendingCount').textContent = pend;
+  document.getElementById('scoreDisplay').textContent = score;
 }
 
-function updateTimer() {
-  const m = Math.floor(state.timeLeft / 60);
-  const s = state.timeLeft % 60;
-  document.getElementById('timerDisplay').textContent = `${m}:${String(s).padStart(2,'0')}`;
-  const frac = state.timeLeft / totalTime;
-  document.getElementById('timerRing').style.strokeDashoffset = (1 - frac) * 125.66;
-  // Color change when low
-  const color = state.timeLeft <= 10 ? '#ef4444' : state.timeLeft <= 30 ? '#f59e0b' : '#f59e0b';
-  document.getElementById('timerRing').style.stroke = color;
-  document.getElementById('timerDisplay').style.color = state.timeLeft <= 10 ? '#ef4444' : '#f59e0b';
-}
-
-function findNext(fromIdx, skipCurrent) {
-  const len = state.letters.length;
-  let i = skipCurrent ? (fromIdx + 1) % len : fromIdx;
-  let checked = 0;
-  while (checked < len) {
-    const s = state.letters[i].status;
-    if (s === 'pending' || s === 'passed') return i;
-    i = (i + 1) % len;
-    checked++;
+// ============= NAVIGATION =============
+function findNextIndex() {
+  const len = ROSCOS[currentRosco].length;
+  for (let step = 1; step <= len; step++) {
+    const idx = (currentIndex + step) % len;
+    if (letterStates[idx] === 'unanswered' || letterStates[idx] === 'pending') return idx;
   }
   return -1;
 }
 
-function advanceToNext() {
-  const prev = state.currentIndex;
-  updateRoscoItem(prev);
-  const next = findNext(state.currentIndex, true);
-  if (next === -1) return endGame();
-  state.currentIndex = next;
-  updateRoscoItem(next);
-  updateClue();
+function showCurrentLetter() {
+  if (currentIndex < 0) { endGame(); return; }
+  const item = ROSCOS[currentRosco][currentIndex];
+  document.getElementById('definitionText').innerHTML =
+    '<span class="text-blue-400 font-bold text-xl mr-2">' + item.l + '</span> ' + item.d;
+  updateRoscoVisuals();
+  document.getElementById('answerInput').value = '';
+  document.getElementById('answerInput').focus();
+}
+
+// ============= ACTIONS =============
+function submitAnswer() {
+  if (gameState !== 'playing') return;
+  const input = document.getElementById('answerInput');
+  const answer = normalize(input.value);
+  const correct = normalize(ROSCOS[currentRosco][currentIndex].a);
+  const defBox = document.getElementById('definitionBox');
+
+  if (!answer) return;
+
+  if (answer === correct) {
+    letterStates[currentIndex] = 'correct';
+    corrects++; score++;
+    defBox.classList.remove('flash-incorrect');
+    defBox.classList.add('flash-correct');
+    setTimeout(() => defBox.classList.remove('flash-correct'), 400);
+  } else {
+    letterStates[currentIndex] = 'incorrect';
+    incorrects++; score--;
+    defBox.classList.remove('flash-correct');
+    defBox.classList.add('flash-incorrect');
+    setTimeout(() => defBox.classList.remove('flash-incorrect'), 400);
+  }
+
+  updateScores();
+  const next = findNextIndex();
+  if (next === -1) { endGame(); return; }
+  currentIndex = next;
+  showCurrentLetter();
+}
+
+function passWord() {
+  if (gameState !== 'playing') return;
+  if (letterStates[currentIndex] === 'unanswered') letterStates[currentIndex] = 'pending';
+  const next = findNextIndex();
+  if (next === -1) { endGame(); return; }
+  currentIndex = next;
+  showCurrentLetter();
   updateScores();
 }
 
-function submitAnswer(text) {
-  if (!text.trim()) return;
-  const item = state.letters[state.currentIndex];
-  if (normalize(text) === normalize(item.answer)) {
-    item.status = 'correct';
-    state.correct++;
-  } else {
-    item.status = 'wrong';
-    state.wrong++;
-  }
-  advanceToNext();
-}
-
-function pasapalabra() {
-  state.letters[state.currentIndex].status = 'passed';
-  advanceToNext();
-}
-
 function togglePause() {
-  paused = !paused;
-  document.getElementById('pauseOverlay').classList.toggle('hidden', !paused);
-  if (paused) {
-    clearInterval(timer);
-  } else {
-    startTimer();
+  if (gameState === 'playing') {
+    gameState = 'paused';
+    document.getElementById('pauseOverlay').classList.remove('hidden');
+    document.getElementById('answerInput').disabled = true;
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('passBtn').disabled = true;
+    document.getElementById('pauseBtn').innerHTML = '<i data-lucide="play" style="width:16px;height:16px;display:inline;vertical-align:middle;"></i> Reanudar';
+    lucide.createIcons();
+  } else if (gameState === 'paused') {
+    gameState = 'playing';
+    document.getElementById('pauseOverlay').classList.add('hidden');
+    document.getElementById('answerInput').disabled = false;
+    document.getElementById('submitBtn').disabled = false;
+    document.getElementById('passBtn').disabled = false;
+    document.getElementById('pauseBtn').innerHTML = '<i data-lucide="pause" style="width:16px;height:16px;display:inline;vertical-align:middle;"></i> Pausa';
+    lucide.createIcons();
     document.getElementById('answerInput').focus();
   }
 }
 
-function startTimer() {
-  timer = setInterval(() => {
-    state.timeLeft--;
-    updateTimer();
-    if (state.timeLeft <= 0) { clearInterval(timer); endGame(); }
-  }, 1000);
-}
-
-function endGame() {
-  clearInterval(timer);
-  const pending = state.letters.filter(l => l.status === 'pending' || l.status === 'passed').length;
-  document.getElementById('finalCorrect').textContent = state.correct;
-  document.getElementById('finalWrong').textContent = state.wrong;
-  document.getElementById('finalPending').textContent = pending;
-
-  const total = LETTERS.length;
-  if (state.correct === total) {
-    document.getElementById('resultEmoji').textContent = '🏆';
-    document.getElementById('resultTitle').textContent = '¡ROSCO COMPLETADO!';
-    document.getElementById('resultSub').textContent = '¡Increíble! Has acertado todas las letras.';
-  } else if (state.correct >= total * 0.7) {
-    document.getElementById('resultEmoji').textContent = '🎉';
-    document.getElementById('resultTitle').textContent = '¡Muy bien!';
-    document.getElementById('resultSub').textContent = `Has acertado ${state.correct} de ${total} letras.`;
-  } else {
-    document.getElementById('resultEmoji').textContent = '💪';
-    document.getElementById('resultTitle').textContent = '¡Buen intento!';
-    document.getElementById('resultSub').textContent = `Has acertado ${state.correct} de ${total}. ¡Sigue practicando!`;
-  }
-  document.getElementById('resultOverlay').classList.remove('hidden');
-}
-
-function startGame() {
-  const seconds = Math.max(30, Math.min(600, parseInt(document.getElementById('timeInput').value) || 180));
-  state = initState(seconds);
-  paused = false;
-  document.getElementById('startScreen').classList.add('hidden');
+// ============= GAME FLOW =============
+function startGame(roscoIdx) {
+  currentRosco = roscoIdx;
+  document.getElementById('menuScreen').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
-  document.getElementById('gameScreen').classList.add('flex');
+  resetGameState();
   renderRosco();
-  updateClue();
-  updateTimer();
+  updateTabs();
+  lucide.createIcons();
+}
+
+function resetGameState() {
+  gameState = 'idle';
+  letterStates = ROSCOS[currentRosco].map(() => 'unanswered');
+  currentIndex = 0; score = 0; corrects = 0; incorrects = 0;
+  timeLeft = TOTAL_TIME;
+  clearInterval(timerInterval);
+  updateTimerDisplay();
   updateScores();
+  document.getElementById('definitionText').innerHTML = 'Presioná <b>Iniciar</b> para comenzar';
+  document.getElementById('answerInput').value = '';
+  document.getElementById('answerInput').disabled = true;
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('passBtn').disabled = true;
+  document.getElementById('pauseBtn').disabled = true;
+  document.getElementById('startBtn').classList.remove('hidden');
+  document.getElementById('pauseOverlay').classList.add('hidden');
+}
+
+function beginRound() {
+  gameState = 'playing';
+  document.getElementById('answerInput').disabled = false;
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('passBtn').disabled = false;
+  document.getElementById('pauseBtn').disabled = false;
+  document.getElementById('startBtn').classList.add('hidden');
+  currentIndex = 0;
+  showCurrentLetter();
   startTimer();
 }
 
-function resetGame() {
-  clearInterval(timer);
-  document.getElementById('resultOverlay').classList.add('hidden');
-  document.getElementById('pauseOverlay').classList.add('hidden');
+function switchRosco(idx) {
+  if (gameState === 'playing' || gameState === 'paused') {
+    // Confirm inline - just switch and reset
+  }
+  currentRosco = idx;
+  resetGameState();
+  renderRosco();
+  updateTabs();
+}
+
+function updateTabs() {
+  for (let i = 0; i < 3; i++) {
+    const btn = document.getElementById('tabBtn' + i);
+    btn.className = 'tab-btn' + (i === currentRosco ? ' active' : '');
+  }
+}
+
+function backToMenu() {
+  clearInterval(timerInterval);
+  gameState = 'idle';
   document.getElementById('gameScreen').classList.add('hidden');
-  document.getElementById('gameScreen').classList.remove('flex');
-  document.getElementById('startScreen').classList.remove('hidden');
+  document.getElementById('menuScreen').classList.remove('hidden');
 }
 
-function goToEditScreen() {
-  document.getElementById('startScreen').classList.add('hidden');
-  document.getElementById('editScreen').classList.remove('hidden');
-  document.getElementById('editScreen').classList.add('flex');
-  renderEditList();
-}
+function endGame() {
+  gameState = 'finished';
+  clearInterval(timerInterval);
+  document.getElementById('answerInput').disabled = true;
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('passBtn').disabled = true;
+  document.getElementById('pauseBtn').disabled = true;
+  document.getElementById('pauseOverlay').classList.add('hidden');
+  updateRoscoVisuals();
 
-function goBackToStart() {
-  document.getElementById('editScreen').classList.add('hidden');
-  document.getElementById('editScreen').classList.remove('flex');
-  document.getElementById('startScreen').classList.remove('hidden');
-}
+  const overlay = document.getElementById('resultOverlay');
+  const letters = ROSCOS[currentRosco];
+  const total = letters.length;
+  let emoji = '🏆', title = '¡Increíble!';
+  if (corrects === total) { emoji = '🎉'; title = '¡Rosco perfecto!'; }
+  else if (corrects >= total * 0.7) { emoji = '🌟'; title = '¡Muy bien!'; }
+  else if (corrects >= total * 0.4) { emoji = '👍'; title = '¡Buen intento!'; }
+  else { emoji = '💪'; title = '¡Seguí practicando!'; }
 
-function renderEditList() {
-  const container = document.getElementById('editList');
-  container.innerHTML = '';
-  LETTERS.forEach((letter, idx) => {
-    const q = QUESTIONS[letter];
-    const div = document.createElement('div');
-    div.className = 'bg-slate-800/60 rounded-xl p-4 border border-slate-700';
-    div.innerHTML = `
-      <div class="flex items-center justify-between gap-4 mb-3">
-        <div class="flex-1">
-          <input type="text" placeholder="Palabra respuesta" value="${q.answer}" class="answer-input" data-type="answer" data-letter="${letter}" style="font-size:14px;">
-        </div>
-        <div class="text-4xl font-bold flex-shrink-0" style="color:#f59e0b; min-width:50px; text-align:center">${letter.toUpperCase()}</div>
-        <div class="flex-1">
-          <input type="text" placeholder="Definición/Pista" value="${q.clue}" class="answer-input" data-type="clue" data-letter="${letter}" style="font-size:14px;">
-        </div>
-      </div>
-      <label class="flex items-center justify-center gap-2 text-sm text-slate-400 cursor-pointer">
-        <input type="checkbox" ${q.contains ? 'checked' : ''} data-type="contains" data-letter="${letter}" class="w-4 h-4">
-        <span>Contiene la letra</span>
-      </label>
-    `;
-    container.appendChild(div);
-  });
+  document.getElementById('resultEmoji').textContent = emoji;
+  document.getElementById('resultTitle').textContent = title;
+  document.getElementById('resultSummary').innerHTML =
+    '<span class="text-green-400">' + corrects + ' correctas</span> · ' +
+    '<span class="text-red-400">' + incorrects + ' incorrectas</span><br>' +
+    'Puntaje final: <span class="text-blue-400 font-bold">' + score + '</span>';
 
-  // Add listeners to update QUESTIONS as user types
-  container.querySelectorAll('input').forEach(inp => {
-    inp.addEventListener('change', (e) => {
-      const type = e.target.dataset.type;
-      const letter = e.target.dataset.letter;
-      if (type === 'answer') QUESTIONS[letter].answer = e.target.value;
-      if (type === 'clue') QUESTIONS[letter].clue = e.target.value;
-      if (type === 'contains') QUESTIONS[letter].contains = e.target.checked;
+  // Build details list
+  const detailsDiv = document.getElementById('resultDetails');
+  detailsDiv.innerHTML = '';
+
+  // Incorrectas
+  const incorrectLetters = letters.filter((_, i) => letterStates[i] === 'incorrect');
+  if (incorrectLetters.length > 0) {
+    const section = document.createElement('div');
+    section.className = 'bg-red-900 bg-opacity-20 border border-red-700 rounded-lg p-4';
+    section.innerHTML = '<h3 class="text-red-400 font-bold mb-2">Incorrectas (' + incorrectLetters.length + ')</h3>';
+    const list = document.createElement('div');
+    list.className = 'space-y-2';
+    incorrectLetters.forEach(item => {
+      const item_div = document.createElement('div');
+      item_div.className = 'text-red-300 text-xs';
+      item_div.innerHTML = '<span class="font-bold text-red-400">' + item.l + ':</span> ' + item.a;
+      list.appendChild(item_div);
     });
-  });
+    section.appendChild(list);
+    detailsDiv.appendChild(section);
+  }
+
+  // No solucionadas
+  const unsolved = letters.filter((_, i) => letterStates[i] === 'unanswered' || letterStates[i] === 'pending');
+  if (unsolved.length > 0) {
+    const section = document.createElement('div');
+    section.className = 'bg-yellow-900 bg-opacity-20 border border-yellow-700 rounded-lg p-4';
+    section.innerHTML = '<h3 class="text-yellow-400 font-bold mb-2">No solucionadas (' + unsolved.length + ')</h3>';
+    const list = document.createElement('div');
+    list.className = 'space-y-2';
+    unsolved.forEach(item => {
+      const item_div = document.createElement('div');
+      item_div.className = 'text-yellow-300 text-xs';
+      item_div.innerHTML = '<span class="font-bold text-yellow-400">' + item.l + ':</span> ' + item.a;
+      list.appendChild(item_div);
+    });
+    section.appendChild(list);
+    detailsDiv.appendChild(section);
+  }
+
+  overlay.classList.remove('hidden');
 }
 
-document.getElementById('answerForm').addEventListener('submit', e => {
-  e.preventDefault();
-  if (paused) return;
-  submitAnswer(document.getElementById('answerInput').value);
+function retryRosco() {
+  document.getElementById('resultOverlay').classList.add('hidden');
+  resetGameState();
+  renderRosco();
+}
+
+function closeResult() {
+  document.getElementById('resultOverlay').classList.add('hidden');
+  backToMenu();
+}
+
+// ============= EDIT ROSCO =============
+let editingRoscoIdx = -1;
+let editingRosco = [];
+
+function editRosco(idx) {
+  editingRoscoIdx = idx;
+  editingRosco = JSON.parse(JSON.stringify(ROSCOS[idx])); // Deep copy
+
+  document.getElementById('editTitle').textContent = 'Editar ' + roscoNames[idx];
+  const editContent = document.getElementById('editContent');
+  editContent.innerHTML = '';
+
+  editingRosco.forEach((item, i) => {
+    const container = document.createElement('div');
+    container.className = 'bg-slate-800 rounded-lg p-4 border border-slate-700';
+
+    const letterDiv = document.createElement('div');
+    letterDiv.className = 'text-blue-400 font-bold mb-2 text-sm';
+    letterDiv.textContent = 'Letra: ' + item.l;
+    container.appendChild(letterDiv);
+
+    const defLabel = document.createElement('label');
+    defLabel.className = 'text-xs text-slate-400 block mb-1';
+    defLabel.textContent = 'Definición:';
+    container.appendChild(defLabel);
+
+    const defInput = document.createElement('input');
+    defInput.type = 'text';
+    defInput.className = 'input-answer mb-3';
+    defInput.value = item.d;
+    defInput.dataset.field = 'def';
+    defInput.dataset.index = i;
+    container.appendChild(defInput);
+
+    const ansLabel = document.createElement('label');
+    ansLabel.className = 'text-xs text-slate-400 block mb-1';
+    ansLabel.textContent = 'Respuesta:';
+    container.appendChild(ansLabel);
+
+    const ansInput = document.createElement('input');
+    ansInput.type = 'text';
+    ansInput.className = 'input-answer';
+    ansInput.value = item.a;
+    ansInput.dataset.field = 'ans';
+    ansInput.dataset.index = i;
+    container.appendChild(ansInput);
+
+    editContent.appendChild(container);
+  });
+
+  document.getElementById('editModal').classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.add('hidden');
+  editingRoscoIdx = -1;
+  editingRosco = [];
+}
+
+function saveEditedRosco() {
+  if (editingRoscoIdx < 0) return;
+
+  const inputs = document.getElementById('editContent').querySelectorAll('input');
+  inputs.forEach(inp => {
+    const idx = parseInt(inp.dataset.index);
+    const field = inp.dataset.field;
+    if (field === 'def') editingRosco[idx].d = inp.value.trim();
+    else if (field === 'ans') editingRosco[idx].a = inp.value.trim();
+  });
+
+  ROSCOS[editingRoscoIdx] = editingRosco;
+  closeEditModal();
+}
+document.addEventListener('keydown', (e) => {
+  if (gameState !== 'playing') return;
+  if (e.key === 'Enter') { e.preventDefault(); submitAnswer(); }
 });
 
-// Resize handler for rosco
-window.addEventListener('resize', () => { if (state) renderRosco(); });
-
-// Element SDK
+// ============= ELEMENT SDK =============
 const defaultConfig = {
   game_title: 'Pasapalabra',
-  background_color: '#0a0e1a',
+  rosco1_title: 'Rosco 1',
+  rosco2_title: 'Rosco 2',
+  rosco3_title: 'Rosco 3',
+  background_color: '#0a0e27',
   surface_color: '#1e293b',
   text_color: '#e2e8f0',
-  accent_color: '#f59e0b',
-  action_color: '#22c55e',
-  font_family: 'Fredoka',
-  font_size: 16
+  primary_color: '#2563eb',
+  accent_color: '#7c3aed',
+  font_family: 'Outfit'
 };
 
 function applyConfig(config) {
-  const bg = config.background_color || defaultConfig.background_color;
-  const surface = config.surface_color || defaultConfig.surface_color;
-  const text = config.text_color || defaultConfig.text_color;
-  const accent = config.accent_color || defaultConfig.accent_color;
-  const action = config.action_color || defaultConfig.action_color;
-  const font = config.font_family || defaultConfig.font_family;
   const title = config.game_title || defaultConfig.game_title;
+  document.getElementById('gameTitle').textContent = title;
 
-  document.body.style.background = bg;
-  document.body.style.color = text;
+  roscoNames[0] = config.rosco1_title || defaultConfig.rosco1_title;
+  roscoNames[1] = config.rosco2_title || defaultConfig.rosco2_title;
+  roscoNames[2] = config.rosco3_title || defaultConfig.rosco3_title;
 
-  document.getElementById('titleDisplay').textContent = title;
-  document.getElementById('titleDisplay').style.color = accent;
-  document.getElementById('gameTitleDisplay').textContent = title;
-  document.getElementById('gameTitleDisplay').style.color = accent;
+  for (let i = 0; i < 3; i++) {
+    const btn = document.getElementById('roscoBtn' + i);
+    const tab = document.getElementById('tabName' + i);
+    if (btn) btn.textContent = roscoNames[i];
+    if (tab) tab.textContent = roscoNames[i];
+  }
 
-  document.querySelectorAll('.answer-input').forEach(el => {
-    el.style.background = bg;
-    el.style.borderColor = surface;
-    el.style.color = text;
-  });
+  const bg = config.background_color || defaultConfig.background_color;
+  document.querySelector('.app-wrapper').style.background = 'radial-gradient(ellipse at 50% 0%, ' + bg + '44, ' + bg + ')';
 
-  document.querySelectorAll('h1,h2,p,span,b,label,div').forEach(el => {
-    el.style.fontFamily = `${font}, Fredoka, sans-serif`;
-  });
+  const txt = config.text_color || defaultConfig.text_color;
+  document.body.style.color = txt;
+
+  const font = config.font_family || defaultConfig.font_family;
+  document.body.style.fontFamily = font + ', Outfit, sans-serif';
+  document.getElementById('gameTitle').style.fontFamily = font + ', Outfit, sans-serif';
 }
 
-if (window.elementSdk) {
-  window.elementSdk.init({
-    defaultConfig,
-    onConfigChange: async (config) => applyConfig(config),
-    mapToCapabilities: (config) => ({
-      recolorables: [
-        { get: () => config.background_color || defaultConfig.background_color, set: v => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); } },
-        { get: () => config.surface_color || defaultConfig.surface_color, set: v => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); } },
-        { get: () => config.text_color || defaultConfig.text_color, set: v => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); } },
-        { get: () => config.accent_color || defaultConfig.accent_color, set: v => { config.accent_color = v; window.elementSdk.setConfig({ accent_color: v }); } },
-        { get: () => config.action_color || defaultConfig.action_color, set: v => { config.action_color = v; window.elementSdk.setConfig({ action_color: v }); } }
-      ],
-      borderables: [],
-      fontEditable: { get: () => config.font_family || defaultConfig.font_family, set: v => { config.font_family = v; window.elementSdk.setConfig({ font_family: v }); } },
-      fontSizeable: { get: () => config.font_size || defaultConfig.font_size, set: v => { config.font_size = v; window.elementSdk.setConfig({ font_size: v }); } }
-    }),
-    mapToEditPanelValues: (config) => new Map([
-      ["game_title", config.game_title || defaultConfig.game_title]
-    ])
-  });
-}
+window.elementSdk.init({
+  defaultConfig,
+  onConfigChange: async (config) => { applyConfig(config); },
+  mapToCapabilities: (config) => ({
+    recolorables: [
+      { get: () => config.background_color || defaultConfig.background_color, set: (v) => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); } },
+      { get: () => config.surface_color || defaultConfig.surface_color, set: (v) => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); } },
+      { get: () => config.text_color || defaultConfig.text_color, set: (v) => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); } },
+      { get: () => config.primary_color || defaultConfig.primary_color, set: (v) => { config.primary_color = v; window.elementSdk.setConfig({ primary_color: v }); } },
+      { get: () => config.accent_color || defaultConfig.accent_color, set: (v) => { config.accent_color = v; window.elementSdk.setConfig({ accent_color: v }); } }
+    ],
+    borderables: [],
+    fontEditable: {
+      get: () => config.font_family || defaultConfig.font_family,
+      set: (v) => { config.font_family = v; window.elementSdk.setConfig({ font_family: v }); }
+    },
+    fontSizeable: undefined
+  }),
+  mapToEditPanelValues: (config) => new Map([
+    ['game_title', config.game_title || defaultConfig.game_title],
+    ['rosco1_title', config.rosco1_title || defaultConfig.rosco1_title],
+    ['rosco2_title', config.rosco2_title || defaultConfig.rosco2_title],
+    ['rosco3_title', config.rosco3_title || defaultConfig.rosco3_title]
+  ])
+});
 
-lucide.createIcons();
+// ============= INIT =============
+document.addEventListener('DOMContentLoaded', () => {
+  lucide.createIcons();
+  applyConfig(defaultConfig);
+});
+
+// Handle resize
+window.addEventListener('resize', () => {
+  if (!document.getElementById('gameScreen').classList.contains('hidden')) renderRosco();
+});
 </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9e7ea151b7ca2782',t:'MTc3NTQ1NTgzNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9e8709dcc4ee1e92',t:'MTc3NTU0NDAwMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
