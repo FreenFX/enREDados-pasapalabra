@@ -66,9 +66,11 @@ body { background: #0a0e27; color: #e2e8f0; overflow-x: hidden; }
 
 .definition-box {
   background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 16px; padding: 16px 20px; max-width: 480px; margin: 0 auto;
-  min-height: 60px; display: flex; align-items: center; justify-content: center; text-align: center;
+  border-radius: 16px; padding: 32px 40px; max-width: 90%; margin: 0 auto;
+  min-height: 140px; display: flex; align-items: center; justify-content: center; text-align: center;
 }
+
+.definition-box p { font-size: 42px; line-height: 1.8; font-weight: 600; }
 
 .score-card {
   background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
@@ -108,8 +110,8 @@ body { background: #0a0e27; color: #e2e8f0; overflow-x: hidden; }
    <!-- MENU SCREEN -->
    <div id="menuScreen" class="flex flex-col items-center justify-center h-full px-4">
     <div class="text-center mb-10">
-     <h1 id="gameTitle" class="text-5xl md:text-6xl font-black mb-3 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">Pasapalabra enREDados</h1>
-     <p class="text-lg text-slate-400 font-semibold">Elegí un rosco y demostrá que sos mejor</p>
+     <h1 id="gameTitle" class="text-5xl md:text-6xl font-black mb-3 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">Pasapalabra</h1>
+     <p class="text-lg text-slate-400 font-semibold">Elegí un rosco y demostrá lo que sabés</p>
     </div>
     <div class="flex flex-col gap-4 w-full max-w-xs">
      <div class="flex gap-2">
@@ -765,5 +767,5 @@ window.addEventListener('resize', () => {
   if (!document.getElementById('gameScreen').classList.contains('hidden')) renderRosco();
 });
 </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9e8709dcc4ee1e92',t:'MTc3NTU0NDAwMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9e8f891f81288bea',t:'MTc3NTYzMzEwMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
