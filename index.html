@@ -150,7 +150,7 @@ body { background: #0a0e27; color: #e2e8f0; overflow-x: hidden; }
        <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6" /> <circle id="timerCircle" cx="60" cy="60" r="52" fill="none" stroke="#60a5fa" stroke-width="6" stroke-dasharray="326.73" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 60 60)" style="transition: stroke-dashoffset 1s linear;" />
       </svg>
       <div class="absolute text-3xl font-black font-mono" id="timerText">
-       3:00
+       5:00
       </div>
      </div><!-- Pause overlay -->
      <div id="pauseOverlay" class="pause-overlay hidden">
@@ -299,9 +299,9 @@ let gameState = 'idle'; // idle, playing, paused, finished
 let letterStates = []; // 'unanswered','correct','incorrect','pending'
 let currentIndex = 0;
 let score = 0, corrects = 0, incorrects = 0;
-let timeLeft = 180;
+let timeLeft = 300;
 let timerInterval = null;
-const TOTAL_TIME = 180;
+const TOTAL_TIME = 300;
 
 // ============= NORMALIZE =============
 function normalize(str) {
